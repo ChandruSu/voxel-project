@@ -2,7 +2,13 @@ package rendering;
 
 import engine.Debug;
 import engine.FileLoader;
+import org.joml.Matrix4f;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
+import org.lwjgl.BufferUtils;
 
+import java.nio.FloatBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,6 +39,8 @@ public abstract class Shader
         if (glGetProgrami(programID, GL_VALIDATE_STATUS) == GL_FALSE) {
             Debug.failure("Failed to validate shader program: " + glGetProgramInfoLog(programID));
         }
+
+        initialise();
     }
 
     protected void createShader(int index, int type, String sourcePath)
@@ -52,6 +60,8 @@ public abstract class Shader
 
     protected abstract void create();
 
+    protected abstract void initialise();
+
     protected void getAttributes(String... names)
     {
         for (String name: names) {
@@ -70,6 +80,35 @@ public abstract class Shader
 
             uniforms.put(name, location);
         }
+    }
+
+    public void setUniform(String name, int value) {
+        glUniform1i(uniforms.get(name), value);
+    }
+
+    public void setUniform(String name, float value) {
+        glUniform1f(uniforms.get(name), value);
+    }
+
+    public void setUniform(String name, Vector2f value) {
+        glUniform2f(uniforms.get(name), value.x, value.y);
+    }
+
+    public void setUniform(String name, Vector3f value) {
+        glUniform3f(uniforms.get(name), value.x, value.y, value.z);
+    }
+
+    public void setUniform(String name, Vector4f value) {
+        glUniform4f(uniforms.get(name), value.x, value.y, value.z, value.w);
+    }
+
+    public void setUniform(String name, Matrix4f value) {
+        FloatBuffer buffer = BufferUtils.createFloatBuffer(16);
+        float[] values = new float[16];
+        value.get(values);
+        buffer.put(values);
+        buffer.flip();
+        glUniformMatrix4fv(uniforms.get(name), false, buffer);
     }
 
     public void bind()

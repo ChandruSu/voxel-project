@@ -1,8 +1,10 @@
-import engine.Input;
-import rendering.Model;
-import rendering.Shader;
-import rendering.SimpleModel;
-import rendering.Window;
+import engine.*;
+import org.joml.Matrix4f;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
+import rendering.*;
+
+import java.io.File;
 
 import static org.lwjgl.opengl.GL32.*;
 
@@ -13,57 +15,50 @@ public class Main
         Window window = new Window("Voxel Engine", 1000, 800);
 
         Shader shader = new Shader(2) {
-            @Override
-            protected void create() {
-                getAttributes("position", "normal");
+            @Override protected void create() {
                 createShader(0, GL_VERTEX_SHADER, "vertex.glsl");
                 createShader(1, GL_FRAGMENT_SHADER, "fragment.glsl");
             }
+
+            @Override
+            protected void initialise() {
+                getAttributes("position", "texCoord", "normal");
+                getUniformLocations("tex", "projection", "view", "transformation");
+            }
         };
 
-        float[] vertices = {
-                -0.5f, -0.5f, 0,
-                -0.5f,  0.5f, 0,
-                 0.5f, -0.5f, 0,
-                 0.5f,  0.5f, 0,
-        };
+        Camera camera = new Camera(0, 0, 0);
 
-        float[] normals = {
-                0, 0, 1,
-                0, 0, 1,
-                0, 0, 1,
-                0, 0, 1,
-        };
+        Model model = FileLoader.loadModelFromOBJ("cube.obj");
 
-        float[] uvs = {
-                0, 0,
-                0, 1,
-                1, 0,
-                1, 1
-        };
+        Texture img = FileLoader.loadTexture("cobble.png");
 
-        int[] indices = {
-                0, 2, 1,
-                1, 2, 3
-        };
-
-        Model model = new SimpleModel(vertices, uvs, normals, indices);
+        Transform transformation = new Transform(0, 0, -8);
 
         while (window.isOpen()) {
             window.update();
             Input.update(window);
+            Time.update();
+
+            //transformation.rotate(5f * Time.getDeltaTime(), 5f * Time.getDeltaTime(), 5f * Time.getDeltaTime());
 
             shader.bind();
+
+            shader.setUniform("projection", camera.getProjectionMatrix(window));
+            shader.setUniform("view", camera.getViewMatrix());
+            shader.setUniform("transformation", transformation.getTransformation());
+
+            img.bind();
             model.bind();
             glDrawElements(GL_TRIANGLES, model.getVertexCount(), GL_UNSIGNED_INT, 0);
             model.unbind();
+            img.unbind();
             shader.bind();
 
-            if (Input.isMousePressed(0)) {
-                System.out.println(Input.getMousePosition());
-            }
+            camera.wasd();
         }
 
+        img.cleanup();
         model.cleanup();
         shader.cleanup();
         window.cleanup();

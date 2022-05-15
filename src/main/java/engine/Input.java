@@ -13,9 +13,8 @@ public class Input
     private static final boolean[] keys = new boolean[GLFW_KEY_LAST];
     private static final boolean[] mouseButtons = new boolean[GLFW_MOUSE_BUTTON_LAST];
 
+    private static final Vector2f currentMousePosition = new Vector2f();
     private static final Vector2f deltaMousePosition = new Vector2f();
-    private static final Vector2f prevMousePosition = new Vector2f();
-    private static float lastUpdateTime = Time.currentTime();
 
     public static boolean isKeyDown(int keyCode)
     {
@@ -47,22 +46,31 @@ public class Input
         return !isMouseDown(button) && mouseButtons[button];
     }
 
+    public static void hideCursor() {
+        glfwSetInputMode(inputSource, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    }
+
+    public static void lockCursor() {
+        glfwSetInputMode(inputSource, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+
+    public static void resetCursor() {
+        glfwSetInputMode(inputSource, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
     public static Vector2f getMousePosition()
     {
-        double[] xPos = new double[1];
-        double[] yPos = new double[1];
-        glfwGetCursorPos(inputSource, xPos, yPos);
-        return new Vector2f((float) xPos[0], (float) yPos[0]);
+        return new Vector2f(currentMousePosition);
     }
 
     public static Vector2f getDeltaMousePosition()
     {
-        return deltaMousePosition;
+        return new Vector2f(deltaMousePosition);
     }
 
     public static void update(Window window)
     {
-        inputSource = window.getWindowId();
+        inputSource = window.getWindowID();
 
         for (int i = KEY_FIRST; i < GLFW_KEY_LAST; i++) {
             keys[i] = isKeyDown(i);
@@ -74,12 +82,11 @@ public class Input
 
         glfwPollEvents();
 
-        if (Time.currentTime() - lastUpdateTime >= 1.0f) {
-            Vector2f currentPos = getMousePosition();
-            deltaMousePosition.set(new Vector2f(currentPos).sub(prevMousePosition));
-            prevMousePosition.set(currentPos);
-            lastUpdateTime = Time.currentTime();
-        }
+        double[] xPos = new double[1];
+        double[] yPos = new double[1];
+        glfwGetCursorPos(inputSource, xPos, yPos);
+        deltaMousePosition.set(xPos[0] - currentMousePosition.x, yPos[0] - currentMousePosition.y);
+        currentMousePosition.set(xPos[0], yPos[0]);
 
     }
 }

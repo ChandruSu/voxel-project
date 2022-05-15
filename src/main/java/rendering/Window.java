@@ -10,7 +10,7 @@ import static org.lwjgl.glfw.GLFW.*;
 
 public class Window
 {
-    private final long windowId;
+    private final long windowID;
     private int width;
     private int height;
 
@@ -30,16 +30,17 @@ public class Window
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_RESIZABLE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
         // creates window
-        windowId = glfwCreateWindow(width, height, winTitle, 0, 0);
-        if (windowId == 0) {
+        windowID = glfwCreateWindow(width, height, winTitle, 0, 0);
+        if (windowID == 0) {
             Debug.failure("Failed to create window!");
         }
 
-        glfwMakeContextCurrent(windowId);
+        glfwMakeContextCurrent(windowID);
         GL.createCapabilities();
+        glfwSwapInterval(1);
 
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
@@ -50,30 +51,32 @@ public class Window
         // centres window on screen
         GLFWVidMode vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
         if (vidMode != null) {
-            glfwSetWindowPos(windowId, (vidMode.width() - width) / 2, (vidMode.height() - height) / 2);
+            glfwSetWindowPos(windowID, (vidMode.width() - width) / 2, (vidMode.height() - height) / 2);
         }
 
-        glfwSetWindowSizeCallback(windowId, (window, w, h) -> {
+        glfwSetWindowSizeCallback(windowID, (window, w, h) -> {
+            this.width = w;
+            this.height = h;
             glViewport(0, 0, w, h);
         });
 
-        glfwShowWindow(windowId);
+        glfwShowWindow(windowID);
     }
 
     public boolean isOpen()
     {
-        return !glfwWindowShouldClose(windowId);
+        return !glfwWindowShouldClose(windowID);
     }
 
     public void update()
     {
-        glfwSwapBuffers(windowId);
+        glfwSwapBuffers(windowID);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
     public void cleanup()
     {
-        glfwDestroyWindow(windowId);
+        glfwDestroyWindow(windowID);
         glfwTerminate();
     }
 
@@ -82,8 +85,8 @@ public class Window
         return (float) width / height;
     }
 
-    public long getWindowId()
+    public long getWindowID()
     {
-        return windowId;
+        return windowID;
     }
 }
