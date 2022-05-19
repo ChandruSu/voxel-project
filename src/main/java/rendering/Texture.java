@@ -17,13 +17,14 @@ public class Texture
         this.height = height;
 
         bind();
-        setParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        setParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-        setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        setParameter(GL_TEXTURE_WRAP_S, GL_REPEAT);
+        setParameter(GL_TEXTURE_WRAP_T, GL_REPEAT);
+        setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -1.0f);
+        glGenerateMipmap(textureID);
         unbind();
     }
 

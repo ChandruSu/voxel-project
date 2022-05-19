@@ -11,8 +11,8 @@ public class Time
 
     public static void update()
     {
-        if (currentTime() - prevFPSTime >= 5.0) {
-            System.out.println((FPSFrameCount / 5.0) + " fps");
+        if (currentTime() - prevFPSTime >= 1.0f) {
+            System.out.println(FPSFrameCount + " fps");
             FPSFrameCount = 0;
             prevFPSTime = currentTime();
         }
