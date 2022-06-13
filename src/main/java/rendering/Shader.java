@@ -2,10 +2,7 @@ package rendering;
 
 import engine.Debug;
 import engine.FileLoader;
-import org.joml.Matrix4f;
-import org.joml.Vector2f;
-import org.joml.Vector3f;
-import org.joml.Vector4f;
+import org.joml.*;
 import org.lwjgl.BufferUtils;
 
 import java.nio.FloatBuffer;
@@ -97,6 +94,8 @@ public abstract class Shader
     public void setUniform(String name, Vector3f value) {
         glUniform3f(uniforms.get(name), value.x, value.y, value.z);
     }
+
+    public void setUniform(String name, Vector3i value) { glUniform3i(uniforms.get(name), value.x, value.y, value.z); }
 
     public void setUniform(String name, Vector4f value) {
         glUniform4f(uniforms.get(name), value.x, value.y, value.z, value.w);

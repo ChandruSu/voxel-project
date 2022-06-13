@@ -1,5 +1,8 @@
 #version 300 es
 
+precision highp float;
+precision highp int;
+
 in vec2 uv;
 in vec3 wNormal;
 

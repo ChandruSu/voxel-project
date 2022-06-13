@@ -4,9 +4,13 @@ import engine.Debug;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLDebugMessageCallback;
+import org.lwjgl.opengl.GLDebugMessageCallbackI;
 
 import static org.lwjgl.opengl.GL32.*;
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL43.GL_DEBUG_OUTPUT;
+import static org.lwjgl.opengl.GL43.glDebugMessageCallback;
 
 public class Window
 {
@@ -27,10 +31,10 @@ public class Window
         glfwSetErrorCallback((err, msg) -> Debug.error(String.format("[GLFW] %s", GLFWErrorCallback.getDescription(msg))));
 
         // window preferences
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        // glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
         // creates window
         windowID = glfwCreateWindow(width, height, winTitle, 0, 0);
@@ -42,11 +46,16 @@ public class Window
         GL.createCapabilities();
         glfwSwapInterval(1);
 
+        glEnable(GL_DEBUG_OUTPUT);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glDebugMessageCallback((src, type, id, severity, length, msg, param) -> {
+            Debug.error(String.format("[GL ERROR %d] %s", id, GLDebugMessageCallback.getMessage(length, msg)));
+        }, 0);
 
         // centres window on screen
         GLFWVidMode vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor());

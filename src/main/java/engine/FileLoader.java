@@ -1,9 +1,11 @@
 package engine;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.assimp.*;
 import org.lwjgl.system.MemoryStack;
 import rendering.SimpleModel;
 import rendering.Texture;
+import rendering.TextureArray;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -88,6 +90,7 @@ public class FileLoader
             IntBuffer h = stack.mallocInt(1);
             IntBuffer comp = stack.mallocInt(1);
 
+
             stbi_set_flip_vertically_on_load(false);
             data = stbi_load(RES_PATH + IMG_DIR + filepath, w, h, comp, 4);
             if (data == null) {
@@ -99,5 +102,36 @@ public class FileLoader
         }
 
         return new Texture(width, height, data);
+    }
+
+    public static TextureArray loadTextureArray(String[] filepaths, int width, int height) {
+
+        ByteBuffer buffer = BufferUtils.createByteBuffer(filepaths.length * width * height * 4);
+
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+
+
+            for (int i = 0; i < filepaths.length; i++) {
+
+                IntBuffer w = stack.mallocInt(1);
+                IntBuffer h = stack.mallocInt(1);
+                IntBuffer comp = stack.mallocInt(1);
+
+                stbi_set_flip_vertically_on_load(false);
+                ByteBuffer data = stbi_load(RES_PATH + IMG_DIR + filepaths[i], w, h, comp, 4);
+
+                if (data == null) {
+                    Debug.error("Failed to load texture: " + filepaths[i] + "\n" + stbi_failure_reason());
+                }
+
+                if (w.get() != width || h.get() != height) {
+                    Debug.error("Image '" + filepaths[i] + "', has different dimensions to other images in texture array!");
+                }
+
+                buffer.put(width * height * 4 * i, data, 0, width * height * 4);
+            }
+        }
+
+        return new TextureArray(width, height, filepaths.length, buffer);
     }
 }

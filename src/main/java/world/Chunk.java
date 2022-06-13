@@ -1,10 +1,11 @@
 package world;
 
+import engine.FastNoiseLite;
 import engine.PerlinNoise;
+import org.joml.Vector3i;
 import org.lwjgl.BufferUtils;
 
 import java.nio.IntBuffer;
-import java.nio.LongBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,43 +13,50 @@ import static org.lwjgl.opengl.GL32.*;
 
 public class Chunk
 {
-    public int offset = 0;
+    public Vector3i position;
 
     private static final int WIDTH = 32;
 
     private static final int TYPE_BITS = 0xFFFF;
-    private static final int ADJACENCY_BITS = 0b111111 << 16;
 
     private int vaoID, geoBuffer, typeBuffer, vertexCount;
 
     private final int[][][] voxels = new int[WIDTH][WIDTH][WIDTH];
 
-    public Chunk()
+    public Chunk(Vector3i position)
     {
-        generate();
-    }
-
-    public void generate()
-    {
-        generateChunk();
+        this.position = position;
+        generateChunkData();
         generateMesh();
     }
 
-    private void generateChunk()
+    public void generateChunkData()
     {
         for (int x = 0; x < WIDTH; x++) {
             for (int y = 0; y < WIDTH; y++) {
                 for (int z = 0; z < WIDTH; z++) {
-                    double noise = 0.0;
-                    double amplitude = 0.5, scale = WIDTH;
+                    double xCoord = (double) (position.x + x) / WIDTH;
+                    double yCoord = (double) (position.y + y) / WIDTH;
+                    double zCoord = (double) (position.z + z) / WIDTH;
 
-                    for (int i = 0; i < 3; i++) {
-                        noise += (0.5 + 0.5 * PerlinNoise.noise((double) (x+offset) / scale, (double) y / scale, (double) z / scale)) * amplitude;
-                        amplitude /= 2;
-                        scale *= 0.75;
+                    double noise = 0.0;
+                    double amplitude = 0.5, scale = 1.0;
+
+                    for (int i = 1; i < 2; i++) {
+                        noise += (0.5 + 0.5 * PerlinNoise.noise(xCoord / scale, yCoord / scale, zCoord / scale)) * amplitude;
+                        amplitude *= 0.4;
+                        scale /= i;
                     }
 
-                    voxels[x][y][z] = noise > 0.5 ? 1 : 0;
+                    voxels[x][y][z] = Block.AIR.ordinal();
+
+                    if (noise < 0.23) {
+                        if (18 + 10 * Math.sin((float)(x + position.x) / WIDTH) > y) {
+                            voxels[x][y][z] = Block.COBBLE.ordinal();
+                        } else {
+                            voxels[x][y][z] = Block.DIRT.ordinal();
+                        }
+                    }
                 }
             }
         }
@@ -56,24 +64,22 @@ public class Chunk
 
     private void calculateAdjacency()
     {
+        int adjacencyByte;
         for (int x = 0; x < WIDTH; x++) {
             for (int y = 0; y < WIDTH; y++) {
                 for (int z = 0; z < WIDTH; z++) {
-                    if ((voxels[x][y][z] & TYPE_BITS) == 0) {
-                        continue;
+                    if ((voxels[x][y][z] & TYPE_BITS) != 0) {
+                        adjacencyByte  = getBlock(x - 1, y, z) == 0 ? 0b000001 : 0;
+                        adjacencyByte |= getBlock(x + 1, y, z) == 0 ? 0b000010 : 0;
+                        adjacencyByte |= getBlock(x, y - 1, z) == 0 ? 0b000100 : 0;
+                        adjacencyByte |= getBlock(x, y + 1, z) == 0 ? 0b001000 : 0;
+                        adjacencyByte |= getBlock(x, y, z - 1) == 0 ? 0b010000 : 0;
+                        adjacencyByte |= getBlock(x, y, z + 1) == 0 ? 0b100000 : 0;
+                        voxels[x][y][z] |= adjacencyByte << 16;
                     }
-
-                    int adjacencyByte = getBlock(x - 1, y, z) == 0 ? 0b000001 : 0;
-                    adjacencyByte    |= getBlock(x + 1, y, z) == 0 ? 0b000010 : 0;
-                    adjacencyByte    |= getBlock(x, y - 1, z) == 0 ? 0b000100 : 0;
-                    adjacencyByte    |= getBlock(x, y + 1, z) == 0 ? 0b001000 : 0;
-                    adjacencyByte    |= getBlock(x, y, z - 1) == 0 ? 0b010000 : 0;
-                    adjacencyByte    |= getBlock(x, y, z + 1) == 0 ? 0b100000 : 0;
-                    voxels[x][y][z] |= adjacencyByte << 16;
                 }
             }
         }
-
     }
 
     private List<Quad> generateQuads()
@@ -129,7 +135,6 @@ public class Chunk
                                 for (pos[h] = h0; pos[h] <= h1 && rowMatch; ++pos[h]) {
                                     voxel0 = getBlock(pos[0], pos[1], pos[2]);
                                     rowMatch = ((voxel0 & bit) == bit) && ((voxel0 & TYPE_BITS) == (voxel & TYPE_BITS));
-
                                 }
                                 for (pos[h] = h0; pos[h] <= h1 && rowMatch; ++pos[h]) {
                                     voxels[pos[0]][pos[1]][pos[2]] &= ~bit;
@@ -172,7 +177,7 @@ public class Chunk
             buffer.put(i + 5 - j, q.vertices[0][0] | q.vertices[0][1] << 5 | q.vertices[0][2] << 10 | constant);
 
             for (int k = 0; k < 6; k++) {
-                blocks.put(i + k, q.type);
+                blocks.put(i + k, q.type - 1);
             }
 
             i += 6;
@@ -221,6 +226,10 @@ public class Chunk
         return vertexCount;
     }
 
+    public Vector3i getPosition() {
+        return position;
+    }
+
     public void delete()
     {
         glDeleteBuffers(typeBuffer);
@@ -258,15 +267,6 @@ public class Chunk
             vertices[3][ax] = a;
             vertices[3][h]  = h1;
             vertices[3][v]  = v1;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("Quad: (%d %d %d) (%d %d %d) (%d %d %d) (%d %d %d)",
-                    vertices[0][0], vertices[0][1], vertices[0][2],
-                    vertices[1][0], vertices[1][1], vertices[1][2],
-                    vertices[2][0], vertices[2][1], vertices[2][2],
-                    vertices[3][0], vertices[3][1], vertices[3][2]);
         }
     }
 }
