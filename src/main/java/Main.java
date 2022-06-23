@@ -38,9 +38,9 @@ public class Main
         Texture img = FileLoader.loadTexture("cobble.png");
 
         List<Chunk> chunks = new ArrayList<>();
-        for (int i = 0; i < 1; i++)
-            for (int j = 0; j < 1; j++)
-                for (int k = 0; k < 1; k++)
+        for (int i = 0; i < 2; i++)
+            for (int j = 0; j < 2; j++)
+                for (int k = 0; k < 2; k++)
                     chunks.add(new Chunk(new Vector3i(i*32, k*32, j*32)));
 
         while (window.isOpen())

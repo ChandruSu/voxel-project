@@ -48,14 +48,20 @@ public class Chunk
                         scale /= i;
                     }
 
-                    voxels[x][y][z] = Block.AIR.ordinal();
+                    voxels[x][y][z] = Block.AIR.id();
 
                     if (noise < 0.23) {
-                        if (18 + 10 * Math.sin((float)(x + position.x) / WIDTH) > y) {
-                            voxels[x][y][z] = Block.COBBLE.ordinal();
-                        } else {
-                            voxels[x][y][z] = Block.DIRT.ordinal();
-                        }
+                        voxels[x][y][z] = Block.COBBLE.id();
+                    }
+                }
+            }
+        }
+
+        for (int x = 0; x < WIDTH; x++) {
+            for (int y = 0; y < WIDTH; y++) {
+                for (int z = 0; z < WIDTH; z++) {
+                    if (voxels[x][y][z] == Block.COBBLE.id() && getBlock(x, y + 1, z) == Block.AIR.id()) {
+                        voxels[x][y][z] = Block.DIRT.id();
                     }
                 }
             }
@@ -82,6 +88,11 @@ public class Chunk
         }
     }
 
+    /**
+     * Greedy meshing algorithm optimises voxel mesh by combining similar, co-planar faces, ignoring hidden or occluded
+     * faces, and reducing the final quad count.
+     * @return list of quads
+     */
     private List<Quad> generateQuads()
     {
         int[] pos = { 0, 0, 0 };
@@ -169,6 +180,7 @@ public class Chunk
             j = 1 - q.orientation % 2;
             constant = ((q.height & 31) | (q.width & 31) << 5 | q.orientation << 10) << 15;
 
+            // packs geometry of each quad vertex into a 32-bit integer
             buffer.put(      i        , q.vertices[0][0] | q.vertices[0][1] << 5 | q.vertices[0][2] << 10 | constant);
             buffer.put(i + 1 + j, q.vertices[1][0] | q.vertices[1][1] << 5 | q.vertices[1][2] << 10 | constant | 1 << 28);
             buffer.put(i + 2 - j, q.vertices[3][0] | q.vertices[3][1] << 5 | q.vertices[3][2] << 10 | constant | 3 << 28);
@@ -183,6 +195,7 @@ public class Chunk
             i += 6;
         }
 
+        // Deletes old mesh
         if (vaoID > 0) {
             delete();
         }
@@ -190,6 +203,7 @@ public class Chunk
         vaoID = glGenVertexArrays();
         glBindVertexArray(vaoID);
 
+        // Stores geometry data for all faces
         geoBuffer = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, geoBuffer);
         glBufferData(GL_ARRAY_BUFFER, buffer, GL_STATIC_DRAW);
@@ -197,6 +211,7 @@ public class Chunk
         glEnableVertexAttribArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+        // Stores texture type for each block
         typeBuffer = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, typeBuffer);
         glBufferData(GL_ARRAY_BUFFER, blocks, GL_STATIC_DRAW);
@@ -207,6 +222,13 @@ public class Chunk
         glBindVertexArray(0);
     }
 
+    /**
+     * Returns the value of a voxel within the chunk, returns zero if invalid coordinate is specified.
+     * @param x X coordinate in chunk
+     * @param y Y coordinate in chunk
+     * @param z Z coordinate in chunk
+     * @return voxel
+     */
     private int getBlock(int x, int y, int z)
     {
         if (0 <= x && x < WIDTH && 0 <= y && y < WIDTH && 0 <= z && z < WIDTH) {
@@ -216,20 +238,36 @@ public class Chunk
         }
     }
 
+    /**
+     * Returns the vertex array object id.
+     * @return vao id
+     */
     public int getVaoID()
     {
         return vaoID;
     }
 
+    /**
+     * Returns the number of vertices in the chunk mesh.
+     * @return vertex count
+     */
     public int getVertexCount()
     {
         return vertexCount;
     }
 
-    public Vector3i getPosition() {
+    /**
+     * Returns the world position of the chunk
+     * @return position
+     */
+    public Vector3i getPosition()
+    {
         return position;
     }
 
+    /**
+     * Deletes vertex buffers and vertex array object
+     */
     public void delete()
     {
         glDeleteBuffers(typeBuffer);
@@ -237,12 +275,27 @@ public class Chunk
         glDeleteVertexArrays(vaoID);
     }
 
+    /**
+     * The quad class is used to represent greedy-mesh optimised faces to be rendered. These are used to generate
+     * vertex buffers to be drawn to the screen.
+     */
     private static class Quad
     {
         public int type;
         public int[][] vertices = new int[4][3];
         public int width, height, orientation;
 
+        /**
+         * Quad constructor.
+         * @param type Block type specifies texture to be used from texture array
+         * @param v0 First vertical offset on axis plane
+         * @param v1 Second vertical offset on axis plane
+         * @param h0 First horizontal offset on axis plane
+         * @param h1 Second horizontal offset on axis plane
+         * @param a Plane offset along specified axis
+         * @param ax Axis along which face is aligned
+         * @param neg 1 if face should be flipped on axis
+         */
         Quad(int type, int v0, int v1, int h0, int h1, int a, int ax, int neg)
         {
             this.type = type;
@@ -252,18 +305,22 @@ public class Chunk
             int h = (ax + 1) % 3;
             int v = (ax + 2) % 3;
 
+            // First quad vertex
             vertices[0][ax] = a;
             vertices[0][h]  = h0;
             vertices[0][v]  = v0;
 
+            // Second quad vertex
             vertices[1][ax] = a;
             vertices[1][h]  = h1;
             vertices[1][v]  = v0;
 
+            // Third quad vertex
             vertices[2][ax] = a;
             vertices[2][h]  = h0;
             vertices[2][v]  = v1;
 
+            // Fourth quad vertex
             vertices[3][ax] = a;
             vertices[3][h]  = h1;
             vertices[3][v]  = v1;

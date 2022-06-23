@@ -20,7 +20,8 @@ public class TextureArray
         setParameter(GL_TEXTURE_WRAP_S, GL_REPEAT);
         setParameter(GL_TEXTURE_WRAP_T, GL_REPEAT);
         setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 
         glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, width, height, textureCount, 0, GL_RGBA, GL_UNSIGNED_BYTE, images);
 
