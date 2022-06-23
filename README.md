@@ -1,5 +1,8 @@
 LWJGL Voxel Engine
 ---
+
+![alt cover](voxel-project.png)
+
 ### Description
 Voxel engine made using LWJGL-3 and Java 17.
 
